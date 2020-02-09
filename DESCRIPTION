@@ -1,10 +1,21 @@
-Package: scheduleR
 Type: Package
+Package: scheduleR
 Title: Creates a Schedule For Two Sets of People
 Version: 0.1.0
 Author: Brian C. O'Meara
 Maintainer: Brian C. O'Meara <omeara.brian@gmail.com>
-Description: A typical (and original) use case for this is potential students meeting with faculty. The students have faculty they must meet with and faculty they want to meet with, as well as scheduling constraints. The faculty also have scheduling constraints. This will create a 3D array (axes are students, faculty, and times) with meetings filling the cells. The idea is one of hosts (in this case, faculty) who stay in their rooms, and guests (students) who roam around.
+Description: A typical (and original) use case for this is
+    potential students meeting with faculty. The students have faculty
+    they must meet with and faculty they want to meet with, as well as
+    scheduling constraints. The faculty also have scheduling constraints.
+    This will create a 3D array (axes are students, faculty, and times)
+    with meetings filling the cells. The idea is one of hosts (in this
+    case, faculty) who stay in their rooms, and guests (students) who roam
+    around.
 License: GPL 3.0
+Imports: 
+    humaniformat,
+    stringr
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.0.2
