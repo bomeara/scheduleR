@@ -9,7 +9,8 @@ availability_fill(
   guests,
   desired_length = 60,
   slot_length = 15,
-  earliest_possible = TRUE
+  earliest_possible = TRUE,
+  host_rooms = c()
 )
 }
 \arguments{
@@ -22,10 +23,12 @@ availability_fill(
 \item{slot_length}{The amount of time each slot represents}
 
 \item{earliest_possible}{If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late}
+
+\item{host_rooms}{The vector of host rooms: room is entry, host name is names}
 }
 \value{
 An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
 }
 \description{
-This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are continuous.
+This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are contiguous in time (so if there's a lunch break, it won't schedule a meeting across it). If you include a vector of rooms, where the vector if alphabetized puts nearby rooms together ("Smith 101", "Smith 201", "Adams 404") it will try to schedule appointments so that appointments are scheduled in nearby rooms.
 }

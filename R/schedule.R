@@ -38,21 +38,26 @@ time_difference <- function(times) {
 
 #' Fill in meetings
 #'
-#' This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are continuous.
+#' This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are contiguous in time (so if there's a lunch break, it won't schedule a meeting across it). If you include a vector of rooms, where the vector if alphabetized puts nearby rooms together ("Smith 101", "Smith 201", "Adams 404") it will try to schedule appointments so that appointments are scheduled in nearby rooms.
 #' @param possible_availability 3D array with dimensions host, guest, times
 #' @param guests The data.frame of guest info, including a column of Name of the guest and Desired the hosts to meet
 #' @param desired_length The amount of time to require in a slot
 #' @param slot_length The amount of time each slot represents
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
+#' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
 #' @export
-availability_fill <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE) {
+availability_fill <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c()) {
   slots_required <- ceiling(desired_length/slot_length)
   guest_names <- sample(as.character(guests$Name), size=nrow(guests), replace=FALSE) #pull guests in random order
   for (guest_index in seq_along(guest_names)) {
     guest_vector <- guests[which(guests$Name==guest_names[guest_index]),]
     guest_local <- as.character(guest_vector$Name)
     desired_hosts <- strsplit(guest_vector$Desired, ', ')[[1]]
+    if(length(host_rooms)>1) {
+      desired_host_vector <- sort(host_rooms[desired_hosts], decreasing=(runif(1)<0.5)) #so we get neighboring rooms if possible
+      desired_hosts <- names(desired_host_vector)
+    }
     for (desired_index in seq_along(desired_hosts)) {
       host_local <- as.character(desired_hosts[desired_index])
       #print(c(host_local=host_local, guest_local=guest_local))
@@ -106,13 +111,13 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
 }
 
 #' Convert schedule to easier information
-#' @param availability_array 3d array of availability with entries 0, 1, and 2
 #' @param person The person to make the schedule for
+#' @param availability_array 3d array of availability with entries 0, 1, and 2
 #' @param is_host If TRUE, do for host; otherwise, do guest
-#' @param host_rooms The vector of host rooms
+#' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @return A data.frame of times, the person being met, and the room
 #' @export
-schedule_summary <- function(availability_array, person, is_host=TRUE, host_rooms) {
+schedule_summary <- function(person, availability_array, is_host=TRUE, host_rooms) {
   local_schedule <- data.frame()
   if(is_host) {
      local_schedule <- availability_array[person, ,]

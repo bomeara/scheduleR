@@ -4,16 +4,16 @@
 \alias{schedule_summary}
 \title{Convert schedule to easier information}
 \usage{
-schedule_summary(availability_array, person, is_host = TRUE, host_rooms)
+schedule_summary(person, availability_array, is_host = TRUE, host_rooms)
 }
 \arguments{
-\item{availability_array}{3d array of availability with entries 0, 1, and 2}
-
 \item{person}{The person to make the schedule for}
+
+\item{availability_array}{3d array of availability with entries 0, 1, and 2}
 
 \item{is_host}{If TRUE, do for host; otherwise, do guest}
 
-\item{host_rooms}{The vector of host rooms}
+\item{host_rooms}{The vector of host rooms: room is entry, host name is names}
 }
 \value{
 A data.frame of times, the person being met, and the room
