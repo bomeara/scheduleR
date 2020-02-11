@@ -110,14 +110,14 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
   return(possible_availability)
 }
 
-#' Convert schedule to easier information
+#' Convert schedule to easier information for a person
 #' @param person The person to make the schedule for
 #' @param availability_array 3d array of availability with entries 0, 1, and 2
 #' @param is_host If TRUE, do for host; otherwise, do guest
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @return A data.frame of times, the person being met, and the room
 #' @export
-schedule_summary <- function(person, availability_array, is_host=TRUE, host_rooms) {
+schedule_summary <- function(person, availability_array, is_host=TRUE, host_rooms=NULL) {
   local_schedule <- data.frame()
   if(is_host) {
      local_schedule <- availability_array[person, ,]
@@ -129,13 +129,13 @@ schedule_summary <- function(person, availability_array, is_host=TRUE, host_room
       matching_people <- names(which(local_schedule[,col_index]==2))
       simple_schedule$Person[col_index] <- paste0(matching_people, collapse=", ")
       if(is_host) {
-        if (length(matching_people)>0) {
+        if (length(matching_people)>0 & !is.null(host_rooms)) {
           simple_schedule$Room[col_index] <- host_rooms[person]
         } else {
           simple_schedule$Room[col_index] <- ""
         }
       } else {
-        if (length(matching_people)>0) {
+        if (length(matching_people)>0 & !is.null(host_rooms)) {
           simple_schedule$Room[col_index] <- host_rooms[matching_people[1]]
         } else {
           simple_schedule$Room[col_index] <- ""
@@ -143,4 +143,28 @@ schedule_summary <- function(person, availability_array, is_host=TRUE, host_room
       }
   }
   return(simple_schedule)
+}
+
+#' Flatten everyone's schedules to one data.frame
+#' @param availability_array 3d array of availability with entries 0, 1, and 2
+#' @param is_host If TRUE, do for host; otherwise, do guest
+#' @return a data.frame of times and who each person (host or guest) is meeting with at each time
+#' @export
+schedule_flatten <- function(availability_array, is_host=TRUE) {
+  people <- c()
+  if(is_host) {
+    people <- dimnames(availability_array)$host
+  } else {
+    people <- dimnames(availability_array)$guest
+  }
+  people <- sort(people)
+  schedule_flat <- data.frame(Times=dimnames(availability_array)$times, stringsAsFactors=FALSE)
+  for (i in seq_along(people)) {
+    local_schedule <- schedule_summary(person=people[i], availability_array=availability_array, is_host=is_host)
+    if(max(nchar(local_schedule$Person))>0) { #So, toss a person if they have no meetings
+      schedule_flat$NewPerson <- local_schedule$Person
+      colnames(schedule_flat)[ncol(schedule_flat)] <- people[i]
+    }
+  }
+  return(schedule_flat)
 }

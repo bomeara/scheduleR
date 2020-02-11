@@ -2,9 +2,9 @@
 % Please edit documentation in R/schedule.R
 \name{schedule_summary}
 \alias{schedule_summary}
-\title{Convert schedule to easier information}
+\title{Convert schedule to easier information for a person}
 \usage{
-schedule_summary(person, availability_array, is_host = TRUE, host_rooms)
+schedule_summary(person, availability_array, is_host = TRUE, host_rooms = NULL)
 }
 \arguments{
 \item{person}{The person to make the schedule for}
@@ -19,5 +19,5 @@ schedule_summary(person, availability_array, is_host = TRUE, host_rooms)
 A data.frame of times, the person being met, and the room
 }
 \description{
-Convert schedule to easier information
+Convert schedule to easier information for a person
 }
