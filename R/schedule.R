@@ -34,6 +34,32 @@ time_difference <- function(times) {
   return(abs( (time_1[1]*60+time_1[2]) - (time_2[1]*60+time_2[2]) ))
 }
 
+#' Block undesired pairings
+#'
+#' If there are particular combinations of hosts and guest who shouldn't meet, this can block those slots. With the block_guests and block_hosts, it's possible to have a set of them: block_guests = c("Bob, Mary", "Pat") and block_hosts = c("Joe", "Jim, Amy"): so that Bob and Mary won't meet with Joe, and
+#' @param possible_availability 3D array with dimensions host, guest, times
+#' @param block_guests Vector of guests who shouldn't meet particular hosts.
+#' @param block_hosts Vector of hosts who shouldn't meet particular guests.
+#' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
+#' @export
+availability_block <- function(possible_availability, block_guests, block_hosts) {
+  #print(dim(possible_availability))
+  if(length(block_guests) != length(block_hosts)) {
+    stop("The length of block_guests and block_hosts are not the same")
+  }
+  for (i in seq_along(block_guests)) {
+    all_guests <- strsplit(block_guests[i], ", ")[[1]]
+    all_hosts <- strsplit(block_hosts[i], ", ")[[1]]
+    for (host_index in seq_along(all_hosts)) {
+      for (guest_index in seq_along(all_guests)) {
+        possible_availability[all_hosts[host_index], all_guests[guest_index], ] <-0
+      }
+    }
+
+  }
+  #print(dim(possible_availability))
+  return(possible_availability)
+}
 
 
 #' Fill in meetings
@@ -94,6 +120,7 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
         }
         if(length(best_solution)>0) {
           # So for this pair, there is only one set of slots that will work: the one we assign them to (state 2)
+          #print(paste("host", host_local, "guest", guest_local))
           possible_availability[host_local, guest_local, ] <- 0
           for (solution_index in seq_along(best_solution)) {
             possible_availability[host_local, , best_solution[solution_index]] <- 0
@@ -109,6 +136,85 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
   }
   return(possible_availability)
 }
+
+#' Fill in meetings randomly
+#'
+#' This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are contiguous in time (so if there's a lunch break, it won't schedule a meeting across it). If you include a vector of rooms, where the vector if alphabetized puts nearby rooms together ("Smith 101", "Smith 201", "Adams 404") it will try to schedule appointments so that appointments are scheduled in nearby rooms. It will randomly do pairs of guests and hosts
+#' @param possible_availability 3D array with dimensions host, guest, times
+#' @param guests The data.frame of guest info, including a column of Name of the guest and Desired the hosts to meet
+#' @param desired_length The amount of time to require in a slot
+#' @param slot_length The amount of time each slot represents
+#' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
+#' @param host_rooms The vector of host rooms: room is entry, host name is names
+#' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
+#' @export
+availability_fill_random <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c()) {
+  slots_required <- ceiling(desired_length/slot_length)
+  guest_names <- sample(as.character(guests$Name), size=nrow(guests), replace=FALSE) #pull guests in random order
+
+  guests_by_hosts <- data.frame()
+  for (guest_index in seq_along(guest_names)) {
+    guest_vector <- guests[which(guests$Name==guest_names[guest_index]),]
+    guest_local <- as.character(guest_vector$Name)
+    desired_hosts <- strsplit(guest_vector$Desired, ', ')[[1]]
+    if(length(desired_hosts)>0) {
+      guests_by_hosts <- rbind(guests_by_hosts, data.frame(guest=guest_local, host=desired_hosts, stringsAsFactors=FALSE))
+    }
+  }
+  guests_by_hosts <- guests_by_hosts[sample.int(nrow(guests_by_hosts), replace=FALSE),]
+  for (row_index in sequence(nrow(guests_by_hosts))) {
+    host_local <- guests_by_hosts$host[row_index]
+    guest_local <- guests_by_hosts$guest[row_index]
+    if(host_local %in% dimnames(possible_availability)$host) {
+      #print(dim(possible_availability))
+      local_possibility <- possible_availability[host_local,guest_local,]
+      potential_times <- names(local_possibility[which(local_possibility==1)])
+      best_solution <- c()
+      for (slot_index in seq_along(potential_times)) {
+        local_solution <- potential_times[slot_index]
+        last_time <- local_solution
+        for (additional_offset in sequence(slots_required-1)) {
+          additional_index <- slot_index + additional_offset
+          if(additional_index<=length(potential_times)) {
+            #print((c(local_solution[additional_index-1], additional_index-1, local_solution)))
+            next_time <- potential_times[additional_index]
+            if(time_difference(c(last_time, next_time))==slot_length) { # tests to make sure they're adjacent
+              local_solution <- c(local_solution, next_time)
+              last_time <- next_time
+            } else {
+              break
+            }
+          }
+        }
+        if(earliest_possible) {
+          if(length(local_solution)>length(best_solution)) {
+            best_solution <- local_solution
+          }
+        } else {
+          if(length(local_solution)>=length(best_solution)) {
+            best_solution <- local_solution
+          }
+        }
+      }
+      if(length(best_solution)>0) {
+        # So for this pair, there is only one set of slots that will work: the one we assign them to (state 2)
+        #print(paste("host", host_local, "guest", guest_local))
+        possible_availability[host_local, guest_local, ] <- 0
+        for (solution_index in seq_along(best_solution)) {
+          possible_availability[host_local, , best_solution[solution_index]] <- 0
+          possible_availability[, guest_local, best_solution[solution_index]] <- 0
+          possible_availability[host_local, guest_local, best_solution[solution_index]] <-2
+        }
+      }
+
+    } else {
+      warning(paste0("Guest ", guest_local, " wants to meet unavailable ", host_local))
+    }
+  }
+  return(possible_availability)
+}
+
+
 
 #' Convert schedule to easier information for a person
 #' @param person The person to make the schedule for
