@@ -4,10 +4,14 @@
 #' @param data Input CSV file
 #' @param slot_minutes How long to make each slot
 #' @param input_minutes Resolution of the input slots
+#' @param extract_last_name If TRUE, extract last name; if FALSE, assume only last name given
 #' @return a list with availability array and a room vector (where names are last names)
 #' @export
-host_import <- function(data, slot_minutes=15, input_minutes=30) {
-  last_names <- humaniformat::last_name(data$Name)
+host_import <- function(data, slot_minutes=15, input_minutes=30, extract_last_name=TRUE) {
+  last_names <- data$Name
+  if(extract_last_name) {
+  	last_names <- humaniformat::last_name(data$Name)
+  }
   all_times <- unique(c(unname(unlist(sapply(unname(sapply(unique(unlist(strsplit(data$Times, ", "))), times_format)), time_interpolate, slot_minutes=slot_minutes, input_minutes=input_minutes)))))
   availability <- matrix(data=0, nrow=length(last_names), ncol=length(all_times))
   rownames(availability) <- last_names

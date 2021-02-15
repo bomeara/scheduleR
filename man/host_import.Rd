@@ -4,7 +4,12 @@
 \alias{host_import}
 \title{Gathers hosts input data and formats}
 \usage{
-host_import(data, slot_minutes = 15, input_minutes = 30)
+host_import(
+  data,
+  slot_minutes = 15,
+  input_minutes = 30,
+  extract_last_name = TRUE
+)
 }
 \arguments{
 \item{data}{Input CSV file}
@@ -12,6 +17,8 @@ host_import(data, slot_minutes = 15, input_minutes = 30)
 \item{slot_minutes}{How long to make each slot}
 
 \item{input_minutes}{Resolution of the input slots}
+
+\item{extract_last_name}{If TRUE, extract last name; if FALSE, assume only last name given}
 }
 \value{
 a list with availability array and a room vector (where names are last names)
