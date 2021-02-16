@@ -73,7 +73,9 @@ times_format <- function(time, assume_pm = 7) {
       minute <- segments[2]
     }
     if(grepl("p", segments[length(segments)], ignore.case=TRUE)) {
-      hour <- hour+12 # since PM
+	  if(hour!=12) {
+        hour <- hour+12 # since PM
+	  }
     }
   } else {
     if(length(segments)>1) {
