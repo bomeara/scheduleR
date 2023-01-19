@@ -2,6 +2,7 @@
 
 export(availability_block)
 export(availability_fill)
+export(availability_fill_greedy)
 export(availability_fill_random)
 export(guest_availability)
 export(host_import)

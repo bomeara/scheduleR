@@ -24,8 +24,10 @@ host_import <- function(data, slot_minutes=15, input_minutes=30, extract_last_na
     }
   }
   room <- data$Room
+  zoom <- data$Zoom
   names(room) <- last_names
-  return(list(availability=availability, room=room))
+  names(zoom) <- last_names
+  return(list(availability=availability, room=room, zoom=zoom))
 }
 
 #' Gathers guest input data and computes availability array

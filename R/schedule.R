@@ -215,6 +215,33 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
 }
 
 
+#' Fill in meetings with a greedy algorithm
+#'
+#' This will take an availability array and info on guest priorities and fill in the essential meetings. It will make sure the slots are contiguous in time (so if there's a lunch break, it won't schedule a meeting across it). If you include a vector of rooms, where the vector if alphabetized puts nearby rooms together ("Smith 101", "Smith 201", "Adams 404") it will try to schedule appointments so that appointments are scheduled in nearby rooms. It will randomly do pairs of guests and hosts. Then it will repeat this, trying to maximize the number of meetings scheduled.
+#' @param possible_availability 3D array with dimensions host, guest, times
+#' @param guests The data.frame of guest info, including a column of Name of the guest and Desired the hosts to meet
+#' @param desired_length The amount of time to require in a slot
+#' @param slot_length The amount of time each slot represents
+#' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
+#' @param host_rooms The vector of host rooms: room is entry, host name is names
+#' @param max_iterations The maximum number of iterations to try to schedule
+#' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
+#' @export
+availability_fill_greedy <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), max_iterations=100) {
+	best_score <- 0
+	best_availability <- possible_availability
+	for(iteration in sequence(max_iterations)) {
+		local_availability <- availability_fill_random(possible_availability, guests, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms)
+		local_score <- sum(local_availability==2)
+		print(paste("Iteration", iteration, "score", local_score))
+		if(local_score>best_score) {
+			best_score <- local_score
+			best_availability <- local_availability
+		}
+	}	
+	return(best_availability)
+}
+
 
 #' Convert schedule to easier information for a person
 #' @param person The person to make the schedule for
