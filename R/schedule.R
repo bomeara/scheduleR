@@ -232,7 +232,8 @@ availability_fill_greedy <- function(possible_availability, guests, desired_leng
 	best_availability <- possible_availability
 	for(iteration in sequence(max_iterations)) {
 		local_availability <- availability_fill_random(possible_availability, guests, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms)
-		local_score <- sum(local_availability==2)
+		
+		local_score <- sum(local_availability==2) - var(count_unique_meetings(local_availability, is_host=FALSE))
 		print(paste("Iteration", iteration, "score", local_score))
 		if(local_score>best_score) {
 			best_score <- local_score
@@ -300,4 +301,20 @@ schedule_flatten <- function(availability_array, is_host=TRUE) {
     }
   }
   return(schedule_flat)
+}
+
+#' Counts per person how many unique people they meet
+#' @param availability_array 3d array of availability with entries 0, 1, and 2
+#' @param is_host If TRUE, do for host; otherwise, do guest
+#' @return a vector of the number of unique people each person meets
+#' @export
+count_unique_meetings <- function(availability_array, is_host=TRUE) {
+	summarized_schedule <- schedule_flatten(availability_array, is_host=is_host)
+	summarized_schedule <- summarized_schedule[, -1] #remove the times column
+	length_unique <- function(x) {
+		x <- x[nchar(x)>0] #remove empty entries
+		return(length(unique(x)))	
+	}
+	meeting_counts <- apply(summarized_schedule, 2, length_unique)
+	return(meeting_counts)
 }
