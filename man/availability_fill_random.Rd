@@ -10,7 +10,8 @@ availability_fill_random(
   desired_length = 60,
   slot_length = 15,
   earliest_possible = TRUE,
-  host_rooms = c()
+  host_rooms = c(),
+  allow_shorter_meetings = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ availability_fill_random(
 \item{earliest_possible}{If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late}
 
 \item{host_rooms}{The vector of host rooms: room is entry, host name is names}
+
+\item{allow_shorter_meetings}{If TRUE, allow meetings shorter than desired_length}
 }
 \value{
 An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.

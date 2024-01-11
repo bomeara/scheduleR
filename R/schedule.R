@@ -146,9 +146,10 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
 #' @param slot_length The amount of time each slot represents
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
+#' @param allow_shorter_meetings If TRUE, allow meetings shorter than desired_length
 #' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
 #' @export
-availability_fill_random <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c()) {
+availability_fill_random <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), allow_shorter_meetings=FALSE) {
   slots_required <- ceiling(desired_length/slot_length)
   guest_names <- sample(as.character(guests$Name), size=nrow(guests), replace=FALSE) #pull guests in random order
 
@@ -200,11 +201,13 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
         # So for this pair, there is only one set of slots that will work: the one we assign them to (state 2)
         #print(paste("host", host_local, "guest", guest_local))
         possible_availability[host_local, guest_local, ] <- 0
-        for (solution_index in seq_along(best_solution)) {
-          possible_availability[host_local, , best_solution[solution_index]] <- 0
-          possible_availability[, guest_local, best_solution[solution_index]] <- 0
-          possible_availability[host_local, guest_local, best_solution[solution_index]] <-2
-        }
+		if(length(best_solution)==slots_required | allow_shorter_meetings) { #don't want too short meetings
+			for (solution_index in seq_along(best_solution)) {
+				possible_availability[host_local, , best_solution[solution_index]] <- 0
+				possible_availability[, guest_local, best_solution[solution_index]] <- 0
+				possible_availability[host_local, guest_local, best_solution[solution_index]] <-2
+			}
+		}
       }
 
     } else {
@@ -277,6 +280,25 @@ schedule_summary <- function(person, availability_array, is_host=TRUE, host_room
       }
   }
   return(simple_schedule)
+}
+
+#' Convert schedule to easier information for a person including durations
+#' @param simple_schedule A data.frame of times, the person being met, and the room
+#' @param input_minutes The amount of time each slot represents
+#' @return A data.frame of times, the person being met, the room, and the duration
+#' @export
+schedule_durations <- function(simple_schedule, input_minutes=20) {
+	simple_schedule$Duration <- input_minutes
+	rows_to_remove <- c()
+	for (row_index in 2:nrow(simple_schedule)) {
+		if(simple_schedule$Person[row_index]==simple_schedule$Person[row_index-1]) {
+			rows_to_remove <- c(rows_to_remove, row_index-1)
+			simple_schedule$Duration[row_index] <- simple_schedule$Duration[row_index] + simple_schedule$Duration[row_index-1]
+		}
+	}
+	simple_schedule <- simple_schedule[-rows_to_remove,]
+	simple_schedule$Duration <- paste0(simple_schedule$Duration, " min")
+	return(simple_schedule)
 }
 
 #' Flatten everyone's schedules to one data.frame
