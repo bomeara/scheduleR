@@ -289,11 +289,12 @@ schedule_summary <- function(person, availability_array, is_host=TRUE, host_room
 #' @export
 schedule_durations <- function(simple_schedule, input_minutes=20) {
 	simple_schedule$Duration <- input_minutes
+	simple_schedule$Person[nchar(simple_schedule$Person)==0] <- "Break"
 	rows_to_remove <- c()
-	for (row_index in 2:nrow(simple_schedule)) {
+	for (row_index in nrow(simple_schedule):2) {
 		if(simple_schedule$Person[row_index]==simple_schedule$Person[row_index-1]) {
-			rows_to_remove <- c(rows_to_remove, row_index-1)
-			simple_schedule$Duration[row_index] <- simple_schedule$Duration[row_index] + simple_schedule$Duration[row_index-1]
+			simple_schedule$Duration[row_index-1] <- simple_schedule$Duration[row_index-1] + simple_schedule$Duration[row_index]
+			rows_to_remove <- c(rows_to_remove, row_index)
 		}
 	}
 	simple_schedule <- simple_schedule[-rows_to_remove,]
