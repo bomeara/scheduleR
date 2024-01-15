@@ -357,7 +357,7 @@ fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_le
 	while(max(get_gaps_per_guest(availability_array))>too_long & attempt < max_tries) {
 		gaps_by_people <- get_gaps_per_guest(availability_array)
 		focal_person <- sample(names(gaps_by_people)[which(gaps_by_people>too_long)], size=1)
-		guest_df = data.frame(Name=focal_person, Desired=sample(names(dimnames(availability_array)$host), size=1))
+		guest_df = data.frame(Name=focal_person, Desired=sample(dimnames(availability_array)$host, size=1))
 		availability_array <- availability_fill_random(availability_array, guests=guest_df, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, allow_shorter_meetings=allow_shorter_meetings)
 		attempt <- attempt + 1
 	}
