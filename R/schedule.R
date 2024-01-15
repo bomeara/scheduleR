@@ -341,3 +341,55 @@ count_unique_meetings <- function(availability_array, is_host=TRUE) {
 	meeting_counts <- apply(summarized_schedule, 2, length_unique)
 	return(meeting_counts)
 }
+
+#' Fill gaps
+#' @param availability_array 3d array of availability with entries 0, 1, and 2
+#' @param too_long The maximum number of minutes a gap should be
+#' @param desired_length The amount of time to require in a slot
+#' @param slot_length The amount of time each slot represents
+#' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
+#' @param host_rooms The vector of host rooms: room is entry, host name is names
+#' @param allow_shorter_meetings If TRUE, allow meetings shorter than desired_length
+#' @return a 3d array of availability with entries 0, 1, and 2
+#' @export
+fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms, allow_shorter_meetings=FALSE, max_tries=10000) {
+	attempt <- 0
+	while(max(get_gaps_per_guest(availability_array))>too_long & attempt < max_tries) {
+		gaps_by_people <- get_gaps_per_guest(availability_array)
+		focal_person <- sample(names(gaps_by_people)[which(gaps_by_people>too_long)], size=1)
+		guest_df = data.frame(Name=focal_person, Desired=sample(names(dimnames(availability_array)$host), size=1))
+		availability_array <- availability_fill_random(availability_array, guests=guest_df, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, allow_shorter_meetings=allow_shorter_meetings)
+		attempt <- attempt + 1
+	}
+
+  	return(availability_array)	
+}
+
+#' Get the maximum number of adjacent slots a guest is available for
+#' 
+#' This ignores things like lunch (i.e., if there is a gap before lunch and two after, it will return 3)
+#' @param availibility_array 3d array of availability with entries 0, 1, and 2
+#' @param guest_name The name of the guest
+#' @return The maximum number of adjacent slots a guest is available for
+#' @export
+get_max_gap_per_guest <- function(availibility_array, guest_name) {
+	guest_availability <- availibility_array[, guest_name, ]
+	meetings_by_slot <- apply(guest_availability,2,max)
+	y <- rle(meetings_by_slot) #uses strategy from https://stackoverflow.com/questions/28731582/maximum-consecutive-repeats-in-a-vector-in-r
+	return(max(y$lengths[y$values==1]))
+}
+
+#' Get the maximum number of adjacent slots any guest is available for
+#' 
+#' This ignores things like lunch (i.e., if there is a gap before lunch and two after, it will return 3)
+#' @param availibility_array 3d array of availability with entries 0, 1, and 2
+#' @return Vector of the maximum number of adjacent slots each guest is available for
+#' @export
+get_gaps_per_guest <- function(availibility_array) {
+	gap_count <- rep(0, length(dimnames(availibility_array)$guest))
+	for (guest_index in seq_along(dimnames(availibility_array)$guest)) {
+		gap_count[guest_index] <- get_max_gap_per_guest(availibility_array, dimnames(availibility_array)$guest[guest_index])
+  	}
+	names(gap_count) <- dimnames(availibility_array)$guest
+  	return(gap_count)	
+}
