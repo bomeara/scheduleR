@@ -11,6 +11,7 @@ fill_gaps(
   slot_length = 15,
   earliest_possible = TRUE,
   host_rooms,
+  excluded_hosts = c(),
   allow_shorter_meetings = FALSE,
   max_tries = 10000
 )
@@ -27,6 +28,8 @@ fill_gaps(
 \item{earliest_possible}{If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late}
 
 \item{host_rooms}{The vector of host rooms: room is entry, host name is names}
+
+\item{excluded_hosts}{A vector of hosts who shouldn't be scheduled}
 
 \item{allow_shorter_meetings}{If TRUE, allow meetings shorter than desired_length}
 }

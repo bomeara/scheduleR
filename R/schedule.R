@@ -349,15 +349,20 @@ count_unique_meetings <- function(availability_array, is_host=TRUE) {
 #' @param slot_length The amount of time each slot represents
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
+#' @param excluded_hosts A vector of hosts who shouldn't be scheduled
 #' @param allow_shorter_meetings If TRUE, allow meetings shorter than desired_length
 #' @return a 3d array of availability with entries 0, 1, and 2
 #' @export
-fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms, allow_shorter_meetings=FALSE, max_tries=10000) {
+fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms, excluded_hosts=c(), allow_shorter_meetings=FALSE, max_tries=10000) {
 	attempt <- 0
+	possible_hosts <- dimnames(availability_array)$host
+	if(length(excluded_hosts)>0) {
+		possible_hosts <- possible_hosts[!possible_hosts %in% excluded_hosts]
+	}
 	while(max(get_gaps_per_guest(availability_array))>too_long & attempt < max_tries) {
 		gaps_by_people <- get_gaps_per_guest(availability_array)
 		focal_person <- sample(names(gaps_by_people)[which(gaps_by_people>too_long)], size=1)
-		guest_df = data.frame(Name=focal_person, Desired=sample(dimnames(availability_array)$host, size=1))
+		guest_df = data.frame(Name=focal_person, Desired=sample(possible_hosts, size=1))
 		availability_array <- availability_fill_random(availability_array, guests=guest_df, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, allow_shorter_meetings=allow_shorter_meetings)
 		attempt <- attempt + 1
 	}
