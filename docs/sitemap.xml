@@ -28,6 +28,15 @@
     <loc>/reference/count_unique_meetings.html</loc>
   </url>
   <url>
+    <loc>/reference/fill_gaps.html</loc>
+  </url>
+  <url>
+    <loc>/reference/get_gaps_per_guest.html</loc>
+  </url>
+  <url>
+    <loc>/reference/get_max_gap_per_guest.html</loc>
+  </url>
+  <url>
     <loc>/reference/guest_availability.html</loc>
   </url>
   <url>
@@ -38,6 +47,9 @@
   </url>
   <url>
     <loc>/reference/possible_availability_create.html</loc>
+  </url>
+  <url>
+    <loc>/reference/schedule_durations.html</loc>
   </url>
   <url>
     <loc>/reference/schedule_flatten.html</loc>

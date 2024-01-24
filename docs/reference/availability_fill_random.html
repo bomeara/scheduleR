@@ -50,7 +50,8 @@
 <span>  desired_length <span class="op">=</span> <span class="fl">60</span>,</span>
 <span>  slot_length <span class="op">=</span> <span class="fl">15</span>,</span>
 <span>  earliest_possible <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  host_rooms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  host_rooms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  allow_shorter_meetings <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -78,6 +79,10 @@
 
 <dt>host_rooms</dt>
 <dd><p>The vector of host rooms: room is entry, host name is names</p></dd>
+
+
+<dt>allow_shorter_meetings</dt>
+<dd><p>If TRUE, allow meetings shorter than desired_length</p></dd>
 
 </dl></div>
     <div id="value">
