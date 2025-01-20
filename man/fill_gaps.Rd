@@ -12,14 +12,16 @@ fill_gaps(
   earliest_possible = TRUE,
   host_rooms,
   excluded_hosts = c(),
+  included_hosts = c(),
   allow_shorter_meetings = FALSE,
-  max_tries = 10000
+  max_tries = 1000,
+  add_gap = FALSE
 )
 }
 \arguments{
 \item{availability_array}{3d array of availability with entries 0, 1, and 2}
 
-\item{too_long}{The maximum number of minutes a gap should be}
+\item{too_long}{The maximum number of slots a gap should be}
 
 \item{desired_length}{The amount of time to require in a slot}
 
@@ -31,7 +33,11 @@ fill_gaps(
 
 \item{excluded_hosts}{A vector of hosts who shouldn't be scheduled}
 
+\item{included_hosts}{A vector of hosts who should be scheduled. Only include one of these two.}
+
 \item{allow_shorter_meetings}{If TRUE, allow meetings shorter than desired_length}
+
+\item{add_gap}{If TRUE, add a gap between meetings of one slot if possible}
 }
 \value{
 a 3d array of availability with entries 0, 1, and 2

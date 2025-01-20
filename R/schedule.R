@@ -147,9 +147,10 @@ availability_fill <- function(possible_availability, guests, desired_length=60, 
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @param allow_shorter_meetings If TRUE, allow meetings shorter than desired_length
+#' @param add_gap If TRUE, add a gap between meetings of one slot if possible
 #' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
 #' @export
-availability_fill_random <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), allow_shorter_meetings=FALSE) {
+availability_fill_random <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), allow_shorter_meetings=FALSE, add_gap=TRUE) {
   slots_required <- ceiling(desired_length/slot_length)
   guest_names <- sample(as.character(guests$Name), size=nrow(guests), replace=FALSE) #pull guests in random order
 
@@ -171,8 +172,11 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
       local_possibility <- possible_availability[host_local,guest_local,]
       potential_times <- names(local_possibility[which(local_possibility==1)])
       best_solution <- c()
+	  trailing_time <- c()
+	  best_trailing_time <- c()
       for (slot_index in seq_along(potential_times)) {
         local_solution <- potential_times[slot_index]
+		try({trailing_time <- potential_times[slot_index+1]}, silent=TRUE)
         last_time <- local_solution
         for (additional_offset in sequence(slots_required-1)) {
           additional_index <- slot_index + additional_offset
@@ -181,6 +185,8 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
             next_time <- potential_times[additional_index]
             if(time_difference(c(last_time, next_time))==slot_length) { # tests to make sure they're adjacent
               local_solution <- c(local_solution, next_time)
+			  try({trailing_time <- potential_times[additional_index+1]}, silent=TRUE)
+
               last_time <- next_time
             } else {
               break
@@ -190,10 +196,12 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
         if(earliest_possible) {
           if(length(local_solution)>length(best_solution)) {
             best_solution <- local_solution
+			best_trailing_time <- trailing_time
           }
         } else {
           if(length(local_solution)>=length(best_solution)) {
             best_solution <- local_solution
+			best_trailing_time <- trailing_time
           }
         }
       }
@@ -206,6 +214,18 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
 				possible_availability[host_local, , best_solution[solution_index]] <- 0
 				possible_availability[, guest_local, best_solution[solution_index]] <- 0
 				possible_availability[host_local, guest_local, best_solution[solution_index]] <-2
+				if(add_gap) {
+					try({
+						if(max(possible_availability[host_local, , best_trailing_time])<2) {
+							possible_availability[host_local, , best_trailing_time] <- 0
+						#	print("added trailing host")
+						}
+						if(max(possible_availability[, guest_local, best_trailing_time])<2) {
+							possible_availability[, guest_local, best_trailing_time] <- 0
+						#	print("added trailing guest")
+						}
+					}, silent=TRUE)	
+				}
 			}
 		}
       }
@@ -228,13 +248,14 @@ availability_fill_random <- function(possible_availability, guests, desired_leng
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @param max_iterations The maximum number of iterations to try to schedule
+#' @param add_gap If TRUE, add a gap between meetings of one slot if possible
 #' @return An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
 #' @export
-availability_fill_greedy <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), max_iterations=100) {
+availability_fill_greedy <- function(possible_availability, guests, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms=c(), max_iterations=1000, add_gap=TRUE) {
 	best_score <- 0
 	best_availability <- possible_availability
 	for(iteration in sequence(max_iterations)) {
-		local_availability <- availability_fill_random(possible_availability, guests, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms)
+		local_availability <- availability_fill_random(possible_availability, guests, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, add_gap=add_gap)
 		
 		local_score <- sum(local_availability==2) - var(count_unique_meetings(local_availability, is_host=FALSE))
 		print(paste("Iteration", iteration, "score", local_score))
@@ -344,31 +365,37 @@ count_unique_meetings <- function(availability_array, is_host=TRUE) {
 
 #' Fill gaps
 #' @param availability_array 3d array of availability with entries 0, 1, and 2
-#' @param too_long The maximum number of minutes a gap should be
+#' @param too_long The maximum number of slots a gap should be
 #' @param desired_length The amount of time to require in a slot
 #' @param slot_length The amount of time each slot represents
 #' @param earliest_possible If TRUE, tries to do this meeting as early in the day as it can; if FALSE, as late
 #' @param host_rooms The vector of host rooms: room is entry, host name is names
 #' @param excluded_hosts A vector of hosts who shouldn't be scheduled
+#' @param included_hosts A vector of hosts who should be scheduled. Only include one of these two.
 #' @param allow_shorter_meetings If TRUE, allow meetings shorter than desired_length
+#' @param add_gap If TRUE, add a gap between meetings of one slot if possible
 #' @return a 3d array of availability with entries 0, 1, and 2
 #' @export
-fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms, excluded_hosts=c(), allow_shorter_meetings=FALSE, max_tries=10000) {
+fill_gaps <- function(availability_array, too_long=4, desired_length=60, slot_length=15, earliest_possible=TRUE, host_rooms, excluded_hosts=c(), included_hosts=c(), allow_shorter_meetings=FALSE, max_tries=1000, add_gap=FALSE) {
 	attempt <- 0
 	possible_hosts <- dimnames(availability_array)$host
 	if(length(excluded_hosts)>0) {
 		possible_hosts <- possible_hosts[!possible_hosts %in% excluded_hosts]
 	}
+	if(length(included_hosts)>0) {
+		possible_hosts <- included_hosts
+	}
 	while(max(get_gaps_per_guest(availability_array))>too_long & attempt < max_tries) {
 		gaps_by_people <- get_gaps_per_guest(availability_array)
 		focal_person <- sample(names(gaps_by_people)[which(gaps_by_people>too_long)], size=1)
 		guest_df = data.frame(Name=focal_person, Desired=sample(possible_hosts, size=1))
-		availability_array <- availability_fill_random(availability_array, guests=guest_df, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, allow_shorter_meetings=allow_shorter_meetings)
+		availability_array <- availability_fill_random(availability_array, guests=guest_df, desired_length=desired_length, slot_length=slot_length, earliest_possible=earliest_possible, host_rooms=host_rooms, allow_shorter_meetings=allow_shorter_meetings, add_gap=add_gap)
 		attempt <- attempt + 1
 	}
 
   	return(availability_array)	
 }
+
 
 #' Get the maximum number of adjacent slots a guest is available for
 #' 
@@ -384,6 +411,13 @@ get_max_gap_per_guest <- function(availibility_array, guest_name) {
 	return(max(y$lengths[y$values==1]))
 }
 
+get_max_fill_per_guest <- function(availibility_array, guest_name) {
+	guest_availability <- availibility_array[, guest_name, ]
+	meetings_by_slot <- apply(guest_availability,2,max)
+	y <- rle(meetings_by_slot) #uses strategy from https://stackoverflow.com/questions/28731582/maximum-consecutive-repeats-in-a-vector-in-r
+	return(max(y$lengths[y$values==2]))
+}
+
 #' Get the maximum number of adjacent slots any guest is available for
 #' 
 #' This ignores things like lunch (i.e., if there is a gap before lunch and two after, it will return 3)
@@ -397,4 +431,34 @@ get_gaps_per_guest <- function(availibility_array) {
   	}
 	names(gap_count) <- dimnames(availibility_array)$guest
   	return(gap_count)	
+}
+
+#' Get the maximum number of adjacent slots a guest has filled
+#' 
+#' This ignores things like lunch (i.e., if there is a gap before lunch and two after, it will return 3)
+#' @param availibility_array 3d array of availability with entries 0, 1, and 2
+#' @return The maximum number of adjacent slots a guest has filled
+#' @export
+get_fills_per_guest <- function(availibility_array) {
+	fill_count <- rep(0, length(dimnames(availibility_array)$guest))
+	for (guest_index in seq_along(dimnames(availibility_array)$guest)) {
+		fill_count[guest_index] <- get_max_fill_per_guest(availibility_array, dimnames(availibility_array)$guest[guest_index])
+  	}
+	names(fill_count) <- dimnames(availibility_array)$guest
+  	return(fill_count)	
+}
+
+#' Get the maximum number of adjacent slots a guest has filled
+#'
+#' This ignores things like lunch (i.e., if there is a gap before lunch and two after, it will return 3)
+#' @param availibility_array 3d array of availability with entries 0, 1, and 2
+#' @return The maximum number of adjacent slots a guest has filled
+#' @export
+get_fills_per_host <- function(availibility_array) {
+	fill_count <- rep(0, length(dimnames(availibility_array)$host))
+	for (host_index in seq_along(dimnames(availibility_array)$host)) {
+		fill_count[host_index] <- get_max_fill_per_guest(availibility_array, dimnames(availibility_array)$host[host_index])
+  	}
+	names(fill_count) <- dimnames(availibility_array)$host
+  	return(fill_count)	
 }

@@ -11,7 +11,8 @@ availability_fill_greedy(
   slot_length = 15,
   earliest_possible = TRUE,
   host_rooms = c(),
-  max_iterations = 100
+  max_iterations = 1000,
+  add_gap = TRUE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ availability_fill_greedy(
 \item{host_rooms}{The vector of host rooms: room is entry, host name is names}
 
 \item{max_iterations}{The maximum number of iterations to try to schedule}
+
+\item{add_gap}{If TRUE, add a gap between meetings of one slot if possible}
 }
 \value{
 An array in same format as possible_availability, but with 2 for the assigned slots, 0 for the unavailable slots, and 1 for available but still unfilled.
